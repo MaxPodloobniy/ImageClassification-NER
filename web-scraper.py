@@ -6,30 +6,32 @@ import os
 
 
 def create_folder(path):
+    """Creates a folder if it does not exist."""
     if not os.path.exists(path):
         os.makedirs(path)
 
 
 def run_scraper(search_query, scroll_times):
+    """Launches a browser, searches Pinterest, and scrapes unique post links."""
     with sync_playwright() as playwright:
         browser = playwright.chromium.launch(headless=True)
         context = browser.new_context()
         page = context.new_page()
 
-        print("Відкриваю Pinterest...")
+        print("Opening Pinterest...")
         page.goto(f"https://www.pinterest.com/search/pins/?q={search_query}")
         time.sleep(5)
 
-        print("Прокручую сторінку...")
+        print("Scrolling the page...")
         post_links = set()
 
-        # Збираємо посилання після кожного прокручування
+        # Collect links after each scroll
         for i in range(scroll_times):
-            # Прокручування
+            # Scroll down
             page.mouse.wheel(0, 4000)
             time.sleep(2)
 
-            # Збір посилань після кожного прокручування
+            # Extract links after each scroll
             html = page.content()
             soup = BeautifulSoup(html, 'html.parser')
 
@@ -37,9 +39,9 @@ def run_scraper(search_query, scroll_times):
                 if '/pin/' in link['href']:
                     post_links.add("https://www.pinterest.com" + link['href'])
 
-            # Виводимо прогрес
+            # Print progress every 10 scrolls
             if (i + 1) % 10 == 0:
-                print(f"Прокручено {i + 1} разів, знайдено {len(post_links)} унікальних посилань")
+                print(f"Scrolled {i + 1} times, found {len(post_links)} unique links")
 
         context.close()
         browser.close()
@@ -48,6 +50,7 @@ def run_scraper(search_query, scroll_times):
 
 
 def get_high_res_image(pin_url):
+    """Extracts the highest resolution image URL from a Pinterest post."""
     try:
         headers = {
             "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36"
@@ -57,7 +60,7 @@ def get_high_res_image(pin_url):
 
         soup = BeautifulSoup(response.text, 'html.parser')
 
-        # Спробуємо знайти зображення різними способами
+        # Try to find the image in different ways
         meta_tag = soup.find("meta", property="og:image")
         if meta_tag:
             return meta_tag["content"]
@@ -67,18 +70,19 @@ def get_high_res_image(pin_url):
             return img_tag["src"]
 
     except requests.exceptions.RequestException as e:
-        print(f"Помилка завантаження сторінки {pin_url}: {e}")
+        print(f"Error loading page {pin_url}: {e}")
     except Exception as e:
-        print(f"Неочікувана помилка при обробці {pin_url}: {e}")
+        print(f"Unexpected error processing {pin_url}: {e}")
     return None
 
 
 def download_images(post_links, save_path):
+    """Downloads images from extracted Pinterest links and saves them locally."""
     create_folder(save_path)
     count = 0
     failed = 0
 
-    print(f"Починаю завантаження {len(post_links)} зображень...")
+    print(f"Starting download of {len(post_links)} images...")
 
     for pin_url in post_links:
         img_url = get_high_res_image(pin_url)
@@ -96,15 +100,15 @@ def download_images(post_links, save_path):
 
                 count += 1
                 if count % 100 == 0:
-                    print(f"Збережено {count} фото з {len(post_links)}")
+                    print(f"Saved {count} images out of {len(post_links)}")
                 time.sleep(1)
             except requests.exceptions.RequestException as e:
                 failed += 1
-                print(f"Помилка завантаження {img_url}: {e}")
+                print(f"Error downloading {img_url}: {e}")
         else:
             failed += 1
 
-    print(f"Завершено. Збережено: {count}, Помилок: {failed}")
+    print(f"Download complete. Saved: {count}, Errors: {failed}")
     return count, failed
 
 
@@ -121,18 +125,18 @@ if __name__ == "__main__":
     total_failed = 0
 
     for animal in animals:
-        print(f"\nПошук фото для {animal}")
+        print(f"\nSearching for images of {animal}")
         search_query = f"Photo of {animal}"
 
         save_path = os.path.join(base_path, animal)
 
         post_links = run_scraper(search_query, scroll_times)
-        print(f"Знайдено {len(post_links)} унікальних посилань")
+        print(f"Found {len(post_links)} unique links")
 
         saved, failed = download_images(post_links, save_path)
         total_saved += saved
         total_failed += failed
 
-    print(f"\nЗагальна статистика:")
-    print(f"Всього збережено: {total_saved}")
-    print(f"Всього помилок: {total_failed}")
+    print(f"\nOverall Statistics:")
+    print(f"Total images saved: {total_saved}")
+    print(f"Total errors: {total_failed}")

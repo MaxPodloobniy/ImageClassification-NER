@@ -7,25 +7,26 @@ import os
 import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
+
 print("Num GPUs Available:", len(tf.config.experimental.list_physical_devices('GPU')))
 
-
-# Отримуємо список усіх файлів
+# Get all file paths and class names
 all_files = []
-for class_name in os.listdir('/Users/maxim/PycharmProjects/ImageClassification+NER/dataset'):
-    if class_name.lower() != "hippopotamus":  # Виключаємо гіпопотамів
-        class_path = os.path.join('/Users/maxim/PycharmProjects/ImageClassification+NER/dataset', class_name)
+dataset_path = '/Users/maxim/PycharmProjects/ImageClassification+NER/dataset'
+for class_name in os.listdir(dataset_path):
+    if class_name.lower() != "hippopotamus":  # Exclude the "hippopotamus" class
+        class_path = os.path.join(dataset_path, class_name)
         if os.path.isdir(class_path):
             for filename in os.listdir(class_path):
                 all_files.append((os.path.join(class_path, filename), class_name))
 
-# Створюємо DataFrame
+# Create DataFrame
 df = pd.DataFrame(all_files, columns=["filename", "class"])
 
-# Ділимо на train і val, щоб зберегти всі класи в обох частинах
+# Split data into train and validation sets while preserving class distribution
 train_df, val_df = train_test_split(df, test_size=0.2, stratify=df["class"], random_state=42)
 
-# Тепер створюємо генератори без validation_split
+# Define data generators
 train_datagen = ImageDataGenerator(rescale=1. / 255)
 valid_datagen = ImageDataGenerator(rescale=1. / 255)
 
@@ -51,16 +52,15 @@ valid_generator = valid_datagen.flow_from_dataframe(
     class_mode="categorical"
 )
 
+print(f'Train generator classes: {train_generator.class_indices}')
+print(f'Validation generator classes: {valid_generator.class_indices}')
 
-print(f'Train gen classes:{train_generator.class_indices}')
-print(f'Test gen classes:{valid_generator.class_indices}')
+# Check min and max pixel values
+print(f'Min pixel value: {tf.reduce_min(train_generator[0][0])}')
+print(f'Max pixel value: {tf.reduce_max(train_generator[0][0])}')
 
-print(f'Minimal value on image: {tf.reduce_min(train_generator[0][0])}')
-print(f'Maximal value on image: {tf.reduce_max(train_generator[0][0])}')
-
-
+# Display sample images
 x_batch, y_batch = next(train_generator)
-
 fig, axes = plt.subplots(3, 3, figsize=(10, 10))
 axes = axes.flatten()
 
@@ -72,19 +72,20 @@ for img, lbl, ax in zip(x_batch[:9], y_batch[:9], axes):
 plt.tight_layout()
 plt.show()
 
-# Завантажуємо модель без верхнього шару (fully connected layers)
+# Load VGG16 model without the fully connected layers
 base_model = tf.keras.applications.VGG16(
     input_shape=(224, 224, 3),
-    include_top=False,  # we dont need a pre-trained top layer (output layer)
+    include_top=False,
     weights='imagenet'
 )
 
+# Fine-tune only the first 15 layers
 for layer in base_model.layers[:15]:
     layer.trainable = True
 for layer in base_model.layers[15:]:
     layer.trainable = False
 
-# Створюємо нову модель
+# Build the new model
 x = base_model.output
 x = tf.keras.layers.GlobalAveragePooling2D()(x)
 x = tf.keras.layers.Dense(1024)(x)
@@ -99,27 +100,25 @@ predictions = tf.keras.layers.Dense(10, activation='softmax')(x)
 
 model = tf.keras.models.Model(inputs=base_model.input, outputs=predictions)
 
-# Компільовуємо модель
+# Compile model
 model.compile(optimizer=Adam(1e-4),
               loss="categorical_crossentropy",
               metrics=["accuracy"])
 
-# Колбек для збереження найкращої моделі
+# Callbacks
 checkpoint_callback = ModelCheckpoint(
-    "best_classifier_model.keras",  # Назва файлу для збереження
-    monitor="val_accuracy",  # Відстежуємо точність на валідації
-    save_best_only=True,  # Зберігаємо тільки найкращу версію моделі
-    mode="max",  # Найвищий показник val_accuracy – найкраща модель
+    "best_classifier_model.keras",
+    monitor="val_accuracy",
+    save_best_only=True,
+    mode="max",
     verbose=1
 )
 
-# Колбек для раннього зупинення (щоб не перенавчатися)
 early_stopping_callback = EarlyStopping(
-    patience=4,  # Скільки епох чекати без покращення
-    restore_best_weights=True  # Повертає найкращі ваги після завершення
+    patience=4,
+    restore_best_weights=True
 )
 
-# Зниження фактора навчання для більш тонкого навчання моделі
 learning_rate_reduce = ReduceLROnPlateau(
     monitor='val_loss',
     factor=0.5,
@@ -127,6 +126,7 @@ learning_rate_reduce = ReduceLROnPlateau(
     mode='min'
 )
 
+# Train the model
 model.fit(
     train_generator,
     epochs=100,
