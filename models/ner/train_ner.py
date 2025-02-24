@@ -3,18 +3,17 @@ import random
 import os
 from spacy.training.example import Example
 
-# Завантажуємо базову модель
+# Load the base model
 nlp = spacy.load("en_core_web_sm")
-
 CUSTOM_MODEL_PATH = "custom_ner_model"
 
-# Додаємо NER
+# Add NER component if not already present
 if "ner" not in nlp.pipe_names:
     ner = nlp.add_pipe("ner", last=True)
 else:
     ner = nlp.get_pipe("ner")
 
-# Додаємо один тег "ANIMAL"
+# Add custom label "ANIMAL"
 ner.add_label("ANIMAL")
 
 TRAIN_DATA = [
@@ -135,44 +134,39 @@ TRAIN_DATA = [
     ("The tiger pounced on its prey.", {"entities": [(4, 9, "ANIMAL")]}),
 ]
 
+# Check annotation consistency
 for text, annotations in TRAIN_DATA:
     tags = spacy.training.offsets_to_biluo_tags(nlp.make_doc(text), annotations["entities"])
     if "-" in tags:
-        print(f"❌ Помилка в розмітці: {text} -> {tags}")
+        print(f"❌ Annotation error: {text} -> {tags}")
 
-# Вимикаємо інші пайплайни (щоб не перетреновувати)
+# Disable other pipelines to prevent unnecessary retraining
 other_pipes = [pipe for pipe in nlp.pipe_names if pipe != "ner"]
-with nlp.disable_pipes(*other_pipes):  # Вимикаємо всі інші пайплайни
+with nlp.disable_pipes(*other_pipes):
     optimizer = nlp.begin_training()
 
-    # Тренування
+    # Training loop
     for i in range(10):
         random.shuffle(TRAIN_DATA)
         losses = {}
         for text, annotations in TRAIN_DATA:
             example = Example.from_dict(nlp.make_doc(text), annotations)
             nlp.update([example], drop=0.3, losses=losses)
-
         print(f"Iteration {i + 1}, Loss: {losses['ner']}")
 
+    # Save the model
     print("Saving model...")
-    if not os.path.exists("custom_ner_model"):
-        os.makedirs("custom_ner_model")
+    os.makedirs(CUSTOM_MODEL_PATH, exist_ok=True)
+    nlp.to_disk(CUSTOM_MODEL_PATH)
+    print(f"Model saved to {os.path.abspath(CUSTOM_MODEL_PATH)}")
 
-    # Зберігаємо модель
-    nlp.to_disk("custom_ner_model")
-    print(f"Model saved to {os.path.abspath('custom_ner_model')}")
-
-    # Перевірка чи модель збереглася
+    # Verify the saved model
     try:
-        nlp_loaded = spacy.load("custom_ner_model")
+        nlp_loaded = spacy.load(CUSTOM_MODEL_PATH)
         print("Successfully loaded saved model")
     except Exception as e:
         print(f"Error loading saved model: {e}")
 
-
-
-# Тестові дані
 TEST_DATA = [
     ("There is a chimpanzee in this image."),
     ("I can see a chimpanzee in the photo."),
@@ -219,10 +213,9 @@ TEST_DATA = [
     ("A tiger is present in this photo."),
 ]
 
-# Тестуємо модель
 for sentence in TEST_DATA:
     doc = nlp(sentence)
     print(f'\n{sentence}')
 
     for ent in doc.ents:
-        print(f"Знайдено: {ent.text} (категорія: {ent.label_})")
+        print(f"Found: {ent.text} (category: {ent.label_})")
