@@ -1,16 +1,17 @@
-import tensorflow as tf
+import os
+os.environ['TF_CPP_MIN_LOG_LEVEL'] = '3'  # Прибирає більшість попереджень
 import numpy as np
 import sys
-import os
+import tensorflow as tf
 from tensorflow.keras.preprocessing import image
-os.environ['TF_CPP_MIN_LOG_LEVEL'] = '3'  # Прибирає більшість попереджень
 
 # Завантажуємо модель
-MODEL_PATH = "/Users/maxim/PycharmProjects/ImageClassification+NER/models/classifier/best_classifier_model.keras"
+MODEL_PATH = "models/classifier/best_classifier_model.keras"
 model = tf.keras.models.load_model(MODEL_PATH)
 
 # Класи, які використовувались під час навчання
-CLASS_NAMES = ['chimpanzee', 'coyote', 'deer', 'duck', 'eagle', 'elephant', 'hedgehog', 'kangaroo', 'rhinoceros', 'tiger']
+CLASS_NAMES = ['chimpanzee', 'coyote', 'deer', 'duck', 'eagle', 'elephant', 'hedgehog', 'kangaroo', 'rhinoceros',
+               'tiger']
 
 
 def predict_animal(image_path):
@@ -23,6 +24,8 @@ def predict_animal(image_path):
     predicted_class = CLASS_NAMES[np.argmax(predictions)]
     confidence = np.max(predictions)
 
+    print(f"Predicted class: {predicted_class}")
+
     return predicted_class, confidence
 
 
@@ -31,14 +34,10 @@ if __name__ == "__main__":
 
     import sys
 
-    print("Script started. Args:", sys.argv)
-
     if len(sys.argv) < 2:
         print("Error: No image path provided!")
         sys.exit(1)
 
     image_path = sys.argv[1]
-    print("Image path received:", image_path)
 
     predicted_class, confidence = predict_animal(img_path)
-    print(f"Predicted class: {predicted_class}, Confidence: {confidence:.2f}")
