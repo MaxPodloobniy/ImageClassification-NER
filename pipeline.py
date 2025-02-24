@@ -14,8 +14,6 @@ def run_classifier(image_path):
     if error_output:
         print("Classifier error:", error_output)
 
-    print("Classifier output:", output)  # Додаємо відладковий принт
-
     # 🔥 Шукаємо правильний рядок з класом
     predicted_line = next((line for line in output.split("\n") if "Predicted class:" in line), None)
 
@@ -28,11 +26,18 @@ def run_classifier(image_path):
 
 
 def run_ner(text):
-    result = subprocess.run(["python", "infer_ner.py", text], capture_output=True, text=True)
-    lines = result.stdout.strip().split("\n")
-    if "Extracted animals" in lines[0]:
-        extracted_animals = lines[0].split(": ")[1].split(", ")
-        return [animal.lower() for animal in extracted_animals]
+    result = subprocess.run(["python", "models/ner/infer_ner.py", text], capture_output=True, text=True)
+    output = result.stdout.strip()
+    error_output = result.stderr.strip()
+
+    if error_output:
+        print("NER error:", error_output)
+
+    lines = output.strip().split("\n")
+    # Змінюємо перевірку, щоб відповідала формату виводу
+    if "Found animals:" in lines[-1]:  # Перевіряємо останній рядок
+        animals = lines[-1].split(": ")[1].strip("[]'").split(", ")
+        return [animal.lower() for animal in animals]
     return []
 
 

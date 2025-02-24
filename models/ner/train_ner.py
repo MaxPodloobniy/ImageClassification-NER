@@ -1,9 +1,12 @@
 import spacy
 import random
+import os
 from spacy.training.example import Example
 
 # Завантажуємо базову модель
 nlp = spacy.load("en_core_web_sm")
+
+CUSTOM_MODEL_PATH = "custom_ner_model"
 
 # Додаємо NER
 if "ner" not in nlp.pipe_names:
@@ -11,165 +14,163 @@ if "ner" not in nlp.pipe_names:
 else:
     ner = nlp.get_pipe("ner")
 
-# Додаємо кастомні сутності (тварини)
-animals = ["chimpanzee", "coyote", "deer", "duck", "eagle", "elephant", "hedgehog", "hippopotamus", "kangaroo", "rhinocerus", "tiger"]
-for animal in animals:
-    ner.add_label(animal.upper())
+# Додаємо один тег "ANIMAL"
+ner.add_label("ANIMAL")
 
 TRAIN_DATA = [
-    ("I saw a chimpanzee climbing a tree.", {"entities": [(7, 17, "CHIMPANZEE")]}),
-    ("The chimpanzee was eating bananas.", {"entities": [(4, 14, "CHIMPANZEE")]}),
-    ("Chimpanzees are intelligent animals.", {"entities": [(0, 10, "CHIMPANZEE")]}),
-    ("A group of chimpanzees was making loud noises.", {"entities": [(10, 21, "CHIMPANZEE")]}),
-    ("I watched a documentary about chimpanzees.", {"entities": [(30, 41, "CHIMPANZEE")]}),
-    ("A chimpanzee can use tools to get food.", {"entities": [(2, 12, "CHIMPANZEE")]}),
-    ("We watched a playful chimpanzee at the zoo.", {"entities": [(19, 29, "CHIMPANZEE")]}),
-    ("Chimpanzees are intelligent animals.", {"entities": [(0, 10, "CHIMPANZEE")]}),
+    ("I saw a chimpanzee climbing a tree.", {"entities": [(8, 18, "ANIMAL")]}),
+    ("The chimpanzee was eating bananas.", {"entities": [(4, 14, "ANIMAL")]}),
+    ("Chimpanzees are intelligent animals.", {"entities": [(0, 11, "ANIMAL")]}),
+    ("A group of chimpanzees was making loud noises.", {"entities": [(11, 22, "ANIMAL")]}),
+    ("I watched a documentary about chimpanzees.", {"entities": [(30, 41, "ANIMAL")]}),
+    ("A chimpanzee can use tools to get food.", {"entities": [(2, 12, "ANIMAL")]}),
+    ("We watched a playful chimpanzee at the zoo.", {"entities": [(21, 31, "ANIMAL")]}),
+    ("Chimpanzees are intelligent animals.", {"entities": [(0, 11, "ANIMAL")]}),
 
-    ("A coyote ran across the road.", {"entities": [(2, 8, "COYOTE")]}),
-    ("I heard a coyote howling at night.", {"entities": [(9, 15, "COYOTE")]}),
-    ("Coyotes live in the wild and hunt for food.", {"entities": [(0, 7, "COYOTE")]}),
-    ("The coyote was looking for food.", {"entities": [(4, 10, "COYOTE")]}),
-    ("Have you ever seen a coyote in real life?", {"entities": [(21, 27, "COYOTE")]}),
-    ("A coyote was hunting in the desert.", {"entities": [(2, 8, "COYOTE")]}),
-    ("I heard a coyote howling at night.", {"entities": [(10, 16, "COYOTE")]}),
-    ("Coyotes are found in North America.", {"entities": [(0, 7, "COYOTE")]}),
-    ("A coyote ran across the road.", {"entities": [(2, 8, "COYOTE")]}),
-    ("Coyotes adapt well to urban areas.", {"entities": [(0, 7, "COYOTE")]}),
+    ("A coyote ran across the road.", {"entities": [(2, 8, "ANIMAL")]}),
+    ("I heard a coyote howling at night.", {"entities": [(10, 16, "ANIMAL")]}),
+    ("Coyotes live in the wild and hunt for food.", {"entities": [(0, 7, "ANIMAL")]}),
+    ("The coyote was looking for food.", {"entities": [(4, 10, "ANIMAL")]}),
+    ("Have you ever seen a coyote in real life?", {"entities": [(21, 27, "ANIMAL")]}),
+    ("A coyote was hunting in the desert.", {"entities": [(2, 8, "ANIMAL")]}),
+    ("I heard a coyote howling at night.", {"entities": [(10, 16, "ANIMAL")]}),
+    ("Coyotes are found in North America.", {"entities": [(0, 7, "ANIMAL")]}),
+    ("A coyote ran across the road.", {"entities": [(2, 8, "ANIMAL")]}),
+    ("Coyotes adapt well to urban areas.", {"entities": [(0, 7, "ANIMAL")]}),
 
-    ("A deer jumped over the fence.", {"entities": [(2, 6, "DEER")]}),
-    ("The deer was grazing in the field.", {"entities": [(4, 8, "DEER")]}),
-    ("I spotted a group of deer in the forest.", {"entities": [(19, 23, "DEER")]}),
-    ("Deer are common in this area.", {"entities": [(0, 4, "DEER")]}),
-    ("A baby deer is called a fawn.", {"entities": [(6, 10, "DEER")]}),
-    ("The deer was grazing near the river.", {"entities": [(4, 8, "DEER")]}),
-    ("I saw a deer in the forest.", {"entities": [(9, 13, "DEER")]}),
-    ("Deer are common in this region.", {"entities": [(0, 4, "DEER")]}),
-    ("A deer crossed the road suddenly.", {"entities": [(2, 6, "DEER")]}),
-    ("The deer had large antlers.", {"entities": [(4, 8, "DEER")]}),
+    ("A deer jumped over the fence.", {"entities": [(2, 6, "ANIMAL")]}),
+    ("The deer was grazing in the field.", {"entities": [(4, 8, "ANIMAL")]}),
+    ("I spotted a group of deer in the forest.", {"entities": [(21, 25, "ANIMAL")]}),
+    ("Deer are common in this area.", {"entities": [(0, 4, "ANIMAL")]}),
+    ("A baby deer is called a fawn.", {"entities": [(7, 11, "ANIMAL")]}),
+    ("The deer was grazing near the river.", {"entities": [(4, 8, "ANIMAL")]}),
+    ("I saw a deer in the forest.", {"entities": [(8, 12, "ANIMAL")]}),
+    ("Deer are common in this region.", {"entities": [(0, 4, "ANIMAL")]}),
+    ("A deer crossed the road suddenly.", {"entities": [(2, 6, "ANIMAL")]}),
+    ("The deer had large antlers.", {"entities": [(4, 8, "ANIMAL")]}),
 
-    ("I saw a duck swimming in the lake.", {"entities": [(7, 11, "DUCK")]}),
-    ("The duck quacked loudly.", {"entities": [(4, 8, "DUCK")]}),
-    ("Ducks are often found in ponds.", {"entities": [(0, 5, "DUCK")]}),
-    ("A mother duck protects her ducklings.", {"entities": [(8, 12, "DUCK")]}),
-    ("Have you ever fed ducks at the park?", {"entities": [(19, 24, "DUCK")]}),
-    ("A duck was swimming in the pond.", {"entities": [(2, 6, "DUCK")]}),
-    ("The duck quacked loudly.", {"entities": [(4, 8, "DUCK")]}),
-    ("I saw a duck at the lake.", {"entities": [(9, 13, "DUCK")]}),
-    ("Ducks migrate during the winter.", {"entities": [(0, 5, "DUCK")]}),
-    ("A mother duck led her ducklings.", {"entities": [(2, 6, "DUCK")]}),
+    ("I saw a duck swimming in the lake.", {"entities": [(8, 12, "ANIMAL")]}),
+    ("The duck quacked loudly.", {"entities": [(4, 8, "ANIMAL")]}),
+    ("Ducks are often found in ponds.", {"entities": [(0, 5, "ANIMAL")]}),
+    ("A mother duck protects her ducklings.", {"entities": [(9, 13, "ANIMAL")]}),
+    ("Have you ever fed ducks at the park?", {"entities": [(18, 23, "ANIMAL")]}),
+    ("A duck was swimming in the pond.", {"entities": [(2, 6, "ANIMAL")]}),
+    ("The duck quacked loudly.", {"entities": [(4, 8, "ANIMAL")]}),
+    ("I saw a duck at the lake.", {"entities": [(8, 12, "ANIMAL")]}),
+    ("Ducks migrate during the winter.", {"entities": [(0, 5, "ANIMAL")]}),
+    ("A mother duck led her ducklings.", {"entities": [(9, 13, "ANIMAL")]}),
 
-    ("An eagle soared high in the sky.", {"entities": [(3, 8, "EAGLE")]}),
-    ("The eagle caught a fish.", {"entities": [(4, 9, "EAGLE")]}),
-    ("Eagles have excellent vision.", {"entities": [(0, 6, "EAGLE")]}),
-    ("I saw a golden eagle in the mountains.", {"entities": [(10, 15, "EAGLE")]}),
-    ("Eagles build nests on tall cliffs.", {"entities": [(0, 6, "EAGLE")]}),
-    ("The eagle soared above the mountains.", {"entities": [(4, 9, "EAGLE")]}),
-    ("I saw an eagle catching a fish.", {"entities": [(9, 14, "EAGLE")]}),
-    ("Eagles have excellent vision.", {"entities": [(0, 6, "EAGLE")]}),
-    ("An eagle built a nest on the cliff.", {"entities": [(3, 8, "EAGLE")]}),
-    ("The eagle spread its wings wide.", {"entities": [(4, 9, "EAGLE")]}),
+    ("An eagle soared high in the sky.", {"entities": [(3, 8, "ANIMAL")]}),
+    ("The eagle caught a fish.", {"entities": [(4, 9, "ANIMAL")]}),
+    ("Eagles have excellent vision.", {"entities": [(0, 6, "ANIMAL")]}),
+    ("I saw a golden eagle in the mountains.", {"entities": [(15, 20, "ANIMAL")]}),
+    ("Eagles build nests on tall cliffs.", {"entities": [(0, 6, "ANIMAL")]}),
+    ("The eagle soared above the mountains.", {"entities": [(4, 9, "ANIMAL")]}),
+    ("I saw an eagle catching a fish.", {"entities": [(9, 14, "ANIMAL")]}),
+    ("Eagles have excellent vision.", {"entities": [(0, 6, "ANIMAL")]}),
+    ("An eagle built a nest on the cliff.", {"entities": [(3, 8, "ANIMAL")]}),
+    ("The eagle spread its wings wide.", {"entities": [(4, 9, "ANIMAL")]}),
 
-    ("An elephant was drinking water.", {"entities": [(3, 11, "ELEPHANT")]}),
-    ("Elephants are the largest land animals.", {"entities": [(0, 9, "ELEPHANT")]}),
-    ("I saw a herd of elephants in the zoo.", {"entities": [(14, 23, "ELEPHANT")]}),
-    ("The elephant used its trunk to grab food.", {"entities": [(4, 12, "ELEPHANT")]}),
-    ("Elephants have strong memories.", {"entities": [(0, 9, "ELEPHANT")]}),
-    ("The elephant sprayed water with its trunk.", {"entities": [(4, 12, "ELEPHANT")]}),
-    ("I saw a baby elephant at the zoo.", {"entities": [(9, 17, "ELEPHANT")]}),
-    ("Elephants have strong memories.", {"entities": [(0, 9, "ELEPHANT")]}),
-    ("An elephant walked through the jungle.", {"entities": [(3, 11, "ELEPHANT")]}),
-    ("The elephant flapped its ears.", {"entities": [(4, 12, "ELEPHANT")]}),
+    ("An elephant was drinking water.", {"entities": [(3, 11, "ANIMAL")]}),
+    ("Elephants are the largest land animals.", {"entities": [(0, 9, "ANIMAL")]}),
+    ("I saw a herd of elephants in the zoo.", {"entities": [(16, 25, "ANIMAL")]}),
+    ("The elephant used its trunk to grab food.", {"entities": [(4, 12, "ANIMAL")]}),
+    ("Elephants have strong memories.", {"entities": [(0, 9, "ANIMAL")]}),
+    ("The elephant sprayed water with its trunk.", {"entities": [(4, 12, "ANIMAL")]}),
+    ("I saw a baby elephant at the zoo.", {"entities": [(13, 21, "ANIMAL")]}),
+    ("Elephants have strong memories.", {"entities": [(0, 9, "ANIMAL")]}),
+    ("An elephant walked through the jungle.", {"entities": [(3, 11, "ANIMAL")]}),
+    ("The elephant flapped its ears.", {"entities": [(4, 12, "ANIMAL")]}),
 
-    ("A hedgehog curled into a ball.", {"entities": [(2, 10, "HEDGEHOG")]}),
-    ("I saw a hedgehog in my backyard.", {"entities": [(7, 15, "HEDGEHOG")]}),
-    ("Hedgehogs have spiky fur.", {"entities": [(0, 9, "HEDGEHOG")]}),
-    ("The hedgehog was hiding under the leaves.", {"entities": [(4, 12, "HEDGEHOG")]}),
-    ("Hedgehogs are nocturnal animals.", {"entities": [(0, 9, "HEDGEHOG")]}),
-    ("A hedgehog rolled into a ball.", {"entities": [(2, 10, "HEDGEHOG")]}),
-    ("The hedgehog has sharp spines.", {"entities": [(4, 12, "HEDGEHOG")]}),
-    ("Hedgehogs are nocturnal animals.", {"entities": [(0, 9, "HEDGEHOG")]}),
-    ("I saw a tiny hedgehog in the garden.", {"entities": [(9, 17, "HEDGEHOG")]}),
-    ("The hedgehog was hiding under the leaves.", {"entities": [(4, 12, "HEDGEHOG")]}),
+    ("A hedgehog curled into a ball.", {"entities": [(2, 10, "ANIMAL")]}),
+    ("I saw a hedgehog in my backyard.", {"entities": [(8, 16, "ANIMAL")]}),
+    ("Hedgehogs have spiky fur.", {"entities": [(0, 9, "ANIMAL")]}),
+    ("The hedgehog was hiding under the leaves.", {"entities": [(4, 12, "ANIMAL")]}),
+    ("Hedgehogs are nocturnal animals.", {"entities": [(0, 9, "ANIMAL")]}),
+    ("A hedgehog rolled into a ball.", {"entities": [(2, 10, "ANIMAL")]}),
+    ("The hedgehog has sharp spines.", {"entities": [(4, 12, "ANIMAL")]}),
+    ("Hedgehogs are nocturnal animals.", {"entities": [(0, 9, "ANIMAL")]}),
+    ("I saw a tiny hedgehog in the garden.", {"entities": [(13, 21, "ANIMAL")]}),
+    ("The hedgehog was hiding under the leaves.", {"entities": [(4, 12, "ANIMAL")]}),
 
-    ("A hippopotamus was resting in the water.", {"entities": [(2, 13, "HIPPOPOTAMUS")]}),
-    ("Hippopotamuses spend most of their time in water.", {"entities": [(0, 13, "HIPPOPOTAMUS")]}),
-    ("I saw a baby hippopotamus at the zoo.", {"entities": [(10, 21, "HIPPOPOTAMUS")]}),
-    ("Hippopotamuses have powerful jaws.", {"entities": [(0, 13, "HIPPOPOTAMUS")]}),
-    ("A hippopotamus can run surprisingly fast.", {"entities": [(2, 13, "HIPPOPOTAMUS")]}),
-    ("A hippopotamus was bathing in the river.", {"entities": [(2, 14, "HIPPOPOTAMUS")]}),
-    ("The hippopotamus is a large mammal.", {"entities": [(4, 16, "HIPPOPOTAMUS")]}),
-    ("Hippopotamuses spend most of their time in water.", {"entities": [(0, 13, "HIPPOPOTAMUS")]}),
-    ("I saw a baby hippopotamus at the zoo.", {"entities": [(9, 21, "HIPPOPOTAMUS")]}),
-    ("The hippopotamus yawned widely.", {"entities": [(4, 16, "HIPPOPOTAMUS")]}),
+    ("A hippopotamus was resting in the water.", {"entities": [(2, 14, "ANIMAL")]}),
+    ("Hippopotamuses spend most of their time in water.", {"entities": [(0, 14, "ANIMAL")]}),
+    ("I saw a baby hippopotamus at the zoo.", {"entities": [(13, 25, "ANIMAL")]}),
+    ("Hippopotamuses have powerful jaws.", {"entities": [(0, 14, "ANIMAL")]}),
+    ("A hippopotamus can run surprisingly fast.", {"entities": [(2, 14, "ANIMAL")]}),
+    ("A hippopotamus was bathing in the river.", {"entities": [(2, 14, "ANIMAL")]}),
+    ("The hippopotamus is a large mammal.", {"entities": [(4, 16, "ANIMAL")]}),
+    ("The hippopotamus yawned widely.", {"entities": [(4, 16, "ANIMAL")]}),
 
-    ("A kangaroo hopped across the field.", {"entities": [(2, 10, "KANGAROO")]}),
-    ("Kangaroos carry their babies in pouches.", {"entities": [(0, 8, "KANGAROO")]}),
-    ("I saw a kangaroo at the wildlife park.", {"entities": [(7, 15, "KANGAROO")]}),
-    ("The kangaroo was eating grass.", {"entities": [(4, 12, "KANGAROO")]}),
-    ("Kangaroos are native to Australia.", {"entities": [(0, 8, "KANGAROO")]}),
-    ("A kangaroo hopped across the field.", {"entities": [(2, 10, "KANGAROO")]}),
-    ("The kangaroo carried a baby in its pouch.", {"entities": [(4, 12, "KANGAROO")]}),
-    ("Kangaroos are strong jumpers.", {"entities": [(0, 8, "KANGAROO")]}),
-    ("I saw a kangaroo boxing with another one.", {"entities": [(9, 17, "KANGAROO")]}),
-    ("The kangaroo was resting in the shade.", {"entities": [(4, 12, "KANGAROO")]}),
+    ("A kangaroo hopped across the field.", {"entities": [(2, 10, "ANIMAL")]}),
+    ("Kangaroos carry their babies in pouches.", {"entities": [(0, 9, "ANIMAL")]}),
+    ("I saw a kangaroo at the wildlife park.", {"entities": [(8, 16, "ANIMAL")]}),
+    ("The kangaroo was eating grass.", {"entities": [(4, 12, "ANIMAL")]}),
+    ("Kangaroos are native to Australia.", {"entities": [(0, 9, "ANIMAL")]}),
+    ("The kangaroo carried a baby in its pouch.", {"entities": [(4, 12, "ANIMAL")]}),
+    ("Kangaroos are strong jumpers.", {"entities": [(0, 9, "ANIMAL")]}),
+    ("I saw a kangaroo boxing with another one.", {"entities": [(8, 16, "ANIMAL")]}),
+    ("The kangaroo was resting in the shade.", {"entities": [(4, 12, "ANIMAL")]}),
 
-    ("A rhinoceros was drinking water.", {"entities": [(2, 11, "RHINOCERUS")]}),
-    ("Rhinoceroses have thick skin.", {"entities": [(0, 11, "RHINOCERUS")]}),
-    ("I saw a white rhinoceros at the zoo.", {"entities": [(10, 19, "RHINOCERUS")]}),
-    ("Rhinoceroses use their horns for defense.", {"entities": [(0, 11, "RHINOCERUS")]}),
-    ("A baby rhinoceros stays close to its mother.", {"entities": [(2, 11, "RHINOCERUS")]}),
-    ("A rhinoceros has a thick skin.", {"entities": [(2, 11, "RHINOCEROS")]}),
-    ("The rhinoceros was drinking water.", {"entities": [(4, 13, "RHINOCEROS")]}),
-    ("Rhinoceroses have a strong horn.", {"entities": [(0, 11, "RHINOCEROS")]}),
-    ("I saw a huge rhinoceros at the safari.", {"entities": [(9, 18, "RHINOCEROS")]}),
-    ("The rhinoceros charged at the jeep.", {"entities": [(4, 13, "RHINOCEROS")]}),
+    ("A rhinoceros was drinking water.", {"entities": [(2, 12, "ANIMAL")]}),
+    ("Rhinoceroses have thick skin.", {"entities": [(0, 12, "ANIMAL")]}),
+    ("I saw a white rhinoceros at the zoo.", {"entities": [(14, 24, "ANIMAL")]}),
+    ("Rhinoceroses use their horns for defense.", {"entities": [(0, 12, "ANIMAL")]}),
+    ("A baby rhinoceros stays close to its mother.", {"entities": [(7, 17, "ANIMAL")]}),
+    ("A rhinoceros has a thick skin.", {"entities": [(2, 12, "ANIMAL")]}),
+    ("The rhinoceros was drinking water.", {"entities": [(4, 14, "ANIMAL")]}),
+    ("Rhinoceroses have a strong horn.", {"entities": [(0, 12, "ANIMAL")]}),
+    ("I saw a huge rhinoceros at the safari.", {"entities": [(13, 23, "ANIMAL")]}),
+    ("The rhinoceros charged at the jeep.", {"entities": [(4, 14, "ANIMAL")]}),
 
-    ("A tiger was stalking its prey.", {"entities": [(2, 7, "TIGER")]}),
-    ("Tigers are powerful hunters.", {"entities": [(0, 6, "TIGER")]}),
-    ("I saw a Bengal tiger at the zoo.", {"entities": [(10, 15, "TIGER")]}),
-    ("The tiger roared loudly.", {"entities": [(4, 9, "TIGER")]}),
-    ("Tigers have distinctive stripes.", {"entities": [(0, 6, "TIGER")]}),
-    ("A tiger was stalking its prey.", {"entities": [(2, 7, "TIGER")]}),
-    ("The tiger roared loudly in the jungle.", {"entities": [(4, 9, "TIGER")]}),
-    ("Tigers are excellent hunters.", {"entities": [(0, 6, "TIGER")]}),
-    ("I saw a white tiger at the zoo.", {"entities": [(9, 14, "TIGER")]}),
-    ("The tiger pounced on its prey.", {"entities": [(4, 9, "TIGER")]}),
+    ("A tiger was stalking its prey.", {"entities": [(2, 7, "ANIMAL")]}),
+    ("Tigers are powerful hunters.", {"entities": [(0, 6, "ANIMAL")]}),
+    ("I saw a Bengal tiger at the zoo.", {"entities": [(15, 20, "ANIMAL")]}),
+    ("The tiger roared loudly.", {"entities": [(4, 9, "ANIMAL")]}),
+    ("Tigers have distinctive stripes.", {"entities": [(0, 6, "ANIMAL")]}),
+    ("A tiger was stalking its prey.", {"entities": [(2, 7, "ANIMAL")]}),
+    ("The tiger roared loudly in the jungle.", {"entities": [(4, 9, "ANIMAL")]}),
+    ("Tigers are excellent hunters.", {"entities": [(0, 6, "ANIMAL")]}),
+    ("I saw a white tiger at the zoo.", {"entities": [(14, 19, "ANIMAL")]}),
+    ("The tiger pounced on its prey.", {"entities": [(4, 9, "ANIMAL")]}),
 ]
 
-# Налаштовуємо пайплайн
-optimizer = nlp.begin_training()
+for text, annotations in TRAIN_DATA:
+    tags = spacy.training.offsets_to_biluo_tags(nlp.make_doc(text), annotations["entities"])
+    if "-" in tags:
+        print(f"❌ Помилка в розмітці: {text} -> {tags}")
 
-# Ініціалізуємо змінні для відстеження найкращої моделі
-best_loss = float('inf')
-best_model_path = "best_ner_model"
+# Вимикаємо інші пайплайни (щоб не перетреновувати)
+other_pipes = [pipe for pipe in nlp.pipe_names if pipe != "ner"]
+with nlp.disable_pipes(*other_pipes):  # Вимикаємо всі інші пайплайни
+    optimizer = nlp.begin_training()
 
-# Тренуємо модель
-for i in range(20):
-    random.shuffle(TRAIN_DATA)
-    losses = {}
+    # Тренування
+    for i in range(10):
+        random.shuffle(TRAIN_DATA)
+        losses = {}
+        for text, annotations in TRAIN_DATA:
+            example = Example.from_dict(nlp.make_doc(text), annotations)
+            nlp.update([example], drop=0.3, losses=losses)
 
-    for text, annotations in TRAIN_DATA:
-        example = Example.from_dict(nlp.make_doc(text), annotations)
-        nlp.update([example], drop=0.3, losses=losses)
+        print(f"Iteration {i + 1}, Loss: {losses['ner']}")
 
-    # Обчислюємо загальну втрату для цієї ітерації
-    current_loss = sum(losses.values())
+    print("Saving model...")
+    if not os.path.exists("custom_ner_model"):
+        os.makedirs("custom_ner_model")
 
-    # Перевіряємо, чи це найкраща модель
-    if current_loss < best_loss:
-        print(f"New best model found! Previous loss: {best_loss}, New loss: {current_loss}")
-        best_loss = current_loss
+    # Зберігаємо модель
+    nlp.to_disk("custom_ner_model")
+    print(f"Model saved to {os.path.abspath('custom_ner_model')}")
 
-        # Просто зберігаємо нову модель (SpaCy перезапише стару)
-        nlp.to_disk(best_model_path)
-        print(f"Model saved to {best_model_path}")
+    # Перевірка чи модель збереглася
+    try:
+        nlp_loaded = spacy.load("custom_ner_model")
+        print("Successfully loaded saved model")
+    except Exception as e:
+        print(f"Error loading saved model: {e}")
 
-print(f"\nTraining completed. Best model saved with loss: {best_loss}")
 
-# Завантаження найкращої моделі для тестування
-print("\nLoading best model for testing...")
-best_nlp = spacy.load(best_model_path)
 
 # Тестові дані
 TEST_DATA = [
