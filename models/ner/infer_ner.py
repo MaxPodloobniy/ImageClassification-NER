@@ -24,6 +24,10 @@ def extract_animals(text, use_custom_model=False):
     doc = nlp(text)
     found_animals = [ent.text for ent in doc.ents if ent.text.lower() in animals]
 
+    # Додаємо резервний варіант — перевіряємо кожне слово
+    words = text.lower().split()
+    found_animals += [word for word in words if word in animals]
+
     return found_animals
 
 
